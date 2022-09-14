@@ -1,12 +1,11 @@
 const { nanoid } = require('nanoid');
 const { Pool } = require('pg');
-const NotFoundError = require('../../exceptions/NotFoundError');
-const InvariantError = require('../../exceptions/InvariantError');
+const NotFoundError = require('../../../exceptions/NotFoundError');
+const InvariantError = require('../../../exceptions/InvariantError');
 
 class AlbumsService {
-  constructor(songsService) {
+  constructor() {
     this._pool = new Pool();
-    this._songsService = songsService;
   }
 
   async addAlbum({ name, year }) {
@@ -24,18 +23,31 @@ class AlbumsService {
   }
 
   async getAlbumById(id) {
-    const result = await this._pool.query({
-      text: 'SELECT * FROM albums WHERE id = $1',
+    const query = {
+      text: 'SELECT id, name, year FROM albums WHERE id=$1',
       values: [id],
-    });
+    };
 
-    if (!result.rowCount) {
-      throw new NotFoundError('Album not found.');
+    const result = await this._pool.query(query);
+
+    const songQuery = {
+      text: 'SELECT id, title, performer FROM songs WHERE album_id =$1',
+      values: [id],
+    };
+
+    const songResult = await this._pool.query(songQuery);
+
+    if (!result.rows.length) {
+      throw new NotFoundError(`Album dengan id ${id} tidak ditemukan.`);
     }
 
     const album = result.rows[0];
-    const songs = await this._songsService.getSongsByAlbumId(id);
-    return (songs.length) ? { ...album, songs } : album;
+    const songs = songResult.rows;
+
+    return {
+      ...album,
+      songs,
+    };
   }
 
   async editAlbumById(id, { name, year }) {

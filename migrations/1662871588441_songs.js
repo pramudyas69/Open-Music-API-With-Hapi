@@ -31,6 +31,12 @@ exports.up = (pgm) => {
       type: 'text',
     },
   });
+
+  pgm.addConstraint(
+    'songs',
+    'fk_albums_album_id',
+    'FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE',
+  );
 };
 
 exports.down = (pgm) => {
